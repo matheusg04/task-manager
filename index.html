@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Tarefas</title>
+    <style>
+        .task-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .task-board {
+            width: 30%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+        .task {
+            background-color: #e7e7e7;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .task input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Gerenciamento de Tarefas</h1>
+
+<div>
+    <h2>Adicionar Nova Tarefa</h2>
+    <form id="addTaskForm">
+        <input type="text" id="taskTitle" placeholder="Título da tarefa" required>
+        <select id="taskStatus">
+            <option value="não iniciada">Não Iniciada</option>
+            <option value="em andamento">Em Andamento</option>
+            <option value="finalizada">Finalizada</option>
+        </select>
+        <button type="submit">Adicionar Tarefa</button>
+    </form>
+</div>
+
+<div class="task-container">
+    <div id="naoIniciada" class="task-board">
+        <h3>Não Iniciada</h3>
+    </div>
+    <div id="emAndamento" class="task-board">
+        <h3>Em Andamento</h3>
+    </div>
+    <div id="finalizada" class="task-board">
+        <h3>Finalizada</h3>
+    </div>
+</div>
+
+<script>
+    const apiUrl = '/tasks';
+
+    // Função para exibir as tarefas nos respectivos quadros
+    function renderTasks(tasks) {
+        // Limpa os quadros
+        document.getElementById('naoIniciada').innerHTML = '<h3>Não Iniciada</h3>';
+        document.getElementById('emAndamento').innerHTML = '<h3>Em Andamento</h3>';
+        document.getElementById('finalizada').innerHTML = '<h3>Finalizada</h3>';
+
+        // Adiciona as tarefas nos quadros
+        tasks.forEach(task => {
+            const taskElement = document.createElement('div');
+            taskElement.classList.add('task');
+            taskElement.innerHTML = `${task.title} <button onclick="deleteTask(${task.id})">Excluir</button>`;
+
+            // Adiciona a tarefa no quadro baseado no status
+            if (task.status === 'não iniciada') {
+                document.getElementById('naoIniciada').appendChild(taskElement);
+            } else if (task.status === 'em andamento') {
+                document.getElementById('emAndamento').appendChild(taskElement);
+            } else if (task.status === 'finalizada') {
+                document.getElementById('finalizada').appendChild(taskElement);
+            }
+        });
+    }
+
+    // Função para adicionar uma nova tarefa
+    document.getElementById('addTaskForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const title = document.getElementById('taskTitle').value;
+        const status = document.getElementById('taskStatus').value;
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ title, status })
+        });
+
+        const newTask = await response.json();
+        // Não substituir a lista de tarefas, apenas adicionar a nova tarefa
+        tasks.push(newTask);
+        renderTasks(tasks);
+        document.getElementById('taskTitle').value = '';
+    });
+
+    // Função para excluir uma tarefa
+    async function deleteTask(id) {
+        const response = await fetch(`${apiUrl}/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            tasks = tasks.filter(task => task.id !== id);
+            renderTasks(tasks);
+        } else {
+            alert('Erro ao excluir a tarefa');
+        }
+    }
+
+    // Carregar as tarefas ao iniciar a página
+    async function loadTasks() {
+        const response = await fetch(apiUrl);
+        tasks = await response.json();
+        renderTasks(tasks);
+    }
+
+    let tasks = [];
+    loadTasks();
+</script>
+
+</body>
+</html>
